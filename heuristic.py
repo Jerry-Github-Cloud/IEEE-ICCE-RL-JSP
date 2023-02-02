@@ -7,19 +7,47 @@ from params import get_args
 MAX = 1e6
 
 
-def heuristic_makespan(env, avai_ops, rule):
+# def heuristic_metric(env, avai_ops, rule):
+#     mor = MOR()
+#     fifo = FIFO()
+#     spt = SPT()
+#     while True:
+#         if rule == "Random":
+#             action_idx = Random(avai_ops)
+#         elif rule == "MOR":
+#             action_idx = mor(avai_ops, env.jsp_instance.jobs)
+#         elif rule == "FIFO":
+#             action_idx = fifo(avai_ops, env.jsp_instance.jobs)
+#         elif rule == "SPT":
+#             action_idx = spt(avai_ops, env.jsp_instance.jobs)
+#         avai_ops, done = env.step(avai_ops, action_idx)
+#         if done:
+#             return env.get_makespan(), env.get_tardiness()
+
+def heuristic_metric(env, avai_ops, rule_name):
+    rules = {
+        "CR": CR(),
+        "EDD": EDD(),
+        "FIFO": FIFO(),
+        "LPT": LPT(),
+        "LS": LS(),
+        "MOR": MOR(),
+        "SPT": SPT(),
+        "SRPT": SRPT(),
+    }
     while True:
-        if rule == "Random":
+        if rule_name == "Random":
             action_idx = Random(avai_ops)
-        elif rule == "MOR":
-            action_idx = MOR(avai_ops, env.jsp_instance.jobs)
-        elif rule == "FIFO":
-            action_idx = FIFO(avai_ops, env.jsp_instance.jobs)
-        elif rule == "SPT":
-            action_idx = SPT(avai_ops, env.jsp_instance.jobs)
+        elif rule_name == "CR":
+            action_idx = rules[rule_name](
+                avai_ops,
+                env.jsp_instance.jobs,
+                env.jsp_instance.current_time)
+        else:
+            action_idx = rules[rule_name](avai_ops, env.jsp_instance.jobs)
         avai_ops, done = env.step(avai_ops, action_idx)
         if done:
-            return env.get_makespan()
+            return env.get_makespan(), env.get_tardiness()
 
 
 def rollout(env, avai_ops):
@@ -39,38 +67,135 @@ def Random(avai_ops):
     return np.random.choice(len(avai_ops), size=1)[0]
 
 
-def MOR(avai_ops, jobs):
-    max_remaining_op = -1
-    action_idx = -1
-    for i in range(len(avai_ops)):
-        op_info = avai_ops[i]
-        job = jobs[op_info['job_id']]
-        op = job.operations[op_info['op_id']]
-        if len(job.operations) - op.op_id > max_remaining_op:
-            max_remaining_op = len(job.operations) - op.op_id
-            action_idx = i
+class CR:
+    def __init__(self):
+        self.name = "CR"
 
-    return action_idx
-
-
-def FIFO(avai_ops, jobs):
-    min_avai_time = MAX
-    for i in range(len(avai_ops)):
-        op_info = avai_ops[i]
-        op = jobs[op_info['job_id']].operations[op_info['op_id']]
-        if op.avai_time < min_avai_time:
-            min_avai_time = op.avai_time
-            action_idx = i
-    return action_idx
+    def __call__(self, avai_ops, jobs, current_time):
+        action_idx = -1
+        cr = MAX
+        for i, op_info in enumerate(avai_ops):
+            job = jobs[op_info['job_id']]
+            if job.done():
+                continue
+            ratio = (job.due_date - current_time) / job.remain_process_time()
+            if ratio > cr:
+                cr = ratio
+                action_idx = i
+        return action_idx
 
 
-def SPT(avai_ops, jobs):
-    min_process_time = MAX
-    action_idx = -1
-    for i in range(len(avai_ops)):
-        op_info = avai_ops[i]
-        op = jobs[op_info['job_id']].operations[op_info['op_id']]
-        if op.process_time < min_process_time:
-            min_process_time = op.process_time
-            action_idx = i
-    return action_idx
+class EDD:
+    def __init__(self):
+        self.name = "EDD"
+
+    def __call__(self, avai_ops, jobs):
+        action_idx = -1
+        edd = MAX
+        for i, op_info in enumerate(avai_ops):
+            job = jobs[op_info['job_id']]
+            if job.done():
+                continue
+            if edd > job.due_date:
+                edd = job.due_date
+                action_idx = i
+        return action_idx
+
+
+class MOR:
+    def __init__(self):
+        self.name = "MOR"
+
+    def __call__(self, avai_ops, jobs):
+        max_remaining_op = -1
+        action_idx = -1
+        for i in range(len(avai_ops)):
+            op_info = avai_ops[i]
+            job = jobs[op_info['job_id']]
+            op = job.operations[op_info['op_id']]
+            if len(job.operations) - op.op_id > max_remaining_op:
+                max_remaining_op = len(job.operations) - op.op_id
+                action_idx = i
+        return action_idx
+
+
+class FIFO:
+    def __init__(self):
+        self.name = "FIFO"
+
+    def __call__(self, avai_ops, jobs):
+        min_avai_time = MAX
+        for i in range(len(avai_ops)):
+            op_info = avai_ops[i]
+            op = jobs[op_info['job_id']].operations[op_info['op_id']]
+            if op.avai_time < min_avai_time:
+                min_avai_time = op.avai_time
+                action_idx = i
+        return action_idx
+
+
+class SPT:
+    def __init__(self):
+        self.name = "SPT"
+
+    def __call__(self, avai_ops, jobs):
+        min_process_time = MAX
+        action_idx = -1
+        for i in range(len(avai_ops)):
+            op_info = avai_ops[i]
+            op = jobs[op_info['job_id']].operations[op_info['op_id']]
+            if op.process_time < min_process_time:
+                min_process_time = op.process_time
+                action_idx = i
+        return action_idx
+
+
+class LPT:
+    def __init__(self):
+        self.name = "LPT"
+
+    def __call__(self, avai_ops, jobs):
+        max_process_time = -1
+        action_idx = -1
+        for i in range(len(avai_ops)):
+            op_info = avai_ops[i]
+            op = jobs[op_info['job_id']].operations[op_info['op_id']]
+            if op.process_time > max_process_time:
+                max_process_time = op.process_time
+                action_idx = i
+        return action_idx
+
+
+class SRPT:
+    def __init__(self):
+        self.name = "SRPT"
+
+    def __call__(self, avai_ops, jobs):
+        action_idx = -1
+        srpt = MAX
+        for i, op_info in enumerate(avai_ops):
+            job = jobs[op_info['job_id']]
+            if job.done():
+                continue
+            if job.remain_process_time() < srpt:
+                srpt = job.remain_process_time()
+                action_idx = i
+        return action_idx
+
+
+class LS:
+    def __init__(self):
+        self.name = "LS"
+
+    def __call__(self, avai_ops, jobs):
+        action_idx = -1
+        least_slack = MAX
+        for i, op_info in enumerate(avai_ops):
+            job = jobs[op_info['job_id']]
+            if job.done():
+                continue
+            slack = job.due_date - job.remain_process_time()
+            if slack < least_slack:
+                least_slack = slack
+                action_idx = i
+        return action_idx

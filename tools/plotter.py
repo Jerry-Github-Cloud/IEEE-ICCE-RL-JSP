@@ -21,7 +21,7 @@ class Plotter(object):
         return '%d' %(op_info['job_id'])
 
     def _get_name(self, op_info):
-        return f"O{op_info['job_id']}{op_info['op_id']}"
+        return f"O{op_info['job_id']},{op_info['op_id']}"
 
     def _get_machine(self, op_info):
         return 'Machine %d' %(op_info['machine_id'])
@@ -86,6 +86,8 @@ class Plotter(object):
 if __name__ == '__main__':
     result_dir = "../result/instances"
     timeline_dir = "../timeline/instances"
+    result_dir = "../agent/Rule/result/instances"
+    timeline_dir = "../agent/Rule/timeline/instances"
     
     if not os.path.exists(timeline_dir):
         os.makedirs(timeline_dir)
