@@ -8,11 +8,11 @@ from env.env import JSP_Env
 
 
 def train_dqn(args):
-    agent = DQN_Agent(args)
+    env = JSP_Env(args)
+    agent = DQN_Agent(args, out_dim=len(env.rules))
     total_steps = 0
 
     for episode in range(1, args.episode + 1):
-        env = JSP_Env(args)
         avai_ops = env.reset()
         state = env.get_graph_data(args.device)
         while True:
@@ -25,9 +25,9 @@ def train_dqn(args):
             state = next_state
             if done:
                 break
-        if episode % 10 == 0:
+        if episode % 100 == 0:
             eval_dqn(agent, episode, "JSPLIB/instances/abz5")
-        if episode % 1000 == 0:
+        if episode % 10000 == 0:
             agent.save(os.path.join(weight_dir, f"DQN_ep{episode}"))
         # print(f"makespan: {env.get_makespan()}")
 
@@ -42,12 +42,15 @@ def eval_dqn(agent, episode, instance_path):
         if done:
             break
     makespan = env.get_makespan()
-    # print(
-    #     f"Episode: {episode}\t"
-    #     f"{instance_path}\t"
-    #     f"makespan: {makespan}\t"
-    #     f"{env.rules_count}\t")
+    tardiness = env.get_tardiness()
+    print(
+        f"Episode: {episode}\t"
+        f"{instance_path}\t"
+        f"{makespan}\t"
+        f"{tardiness}\t"
+        f"{env.rules_count}\t")
     writer.add_scalar("Eval/Makespan", makespan, episode)
+    writer.add_scalar("Eval/Tardiness", tardiness, episode)
     writer.add_scalars("Eval/Rules count", env.rules_count, episode)
 
 

@@ -10,9 +10,12 @@ from heuristic import heuristic_metric
 if __name__ == "__main__":
     # all cases
     args = get_args()
-    instance_dir = "JSPLIB/instances"
-    result_dir = "agent/Rule/result/instances"
-    rule_names = ["CR", "EDD", "FIFO", "LPT", "LS", "MOR", "SPT", "SRPT"]
+    # instance_dir = "JSPLIB/instances"
+    # result_dir = "agent/Rule/result/instances"
+    instance_dir = "JSPLIB/small_case"
+    result_dir = "agent/Rule/result/small_case"
+    
+    rule_names = ["CR", "EDD", "FIFO", "LPT", "LS", "MOR", "MRPT", "SPT", "SRPT"]
     for instance_name in os.listdir(instance_dir):
         for rule_name in rule_names:
             env = JSP_Env(args)

@@ -26,13 +26,14 @@ MAX = 1e6
 
 def heuristic_metric(env, avai_ops, rule_name):
     rules = {
-        "CR": CR(),
-        "EDD": EDD(),
+        "CR":   CR(),
+        "EDD":  EDD(),
         "FIFO": FIFO(),
-        "LPT": LPT(),
-        "LS": LS(),
-        "MOR": MOR(),
-        "SPT": SPT(),
+        "LPT":  LPT(),
+        "LS":   LS(),
+        "MOR":  MOR(),
+        "MRPT": LRPT(),
+        "SPT":  SPT(),
         "SRPT": SRPT(),
     }
     while True:
@@ -117,6 +118,24 @@ class MOR:
                 max_remaining_op = len(job.operations) - op.op_id
                 action_idx = i
         return action_idx
+
+
+class LRPT:
+    def __init__(self):
+        self.name = "LRPT"
+
+    def __call__(self, avai_ops, jobs):
+        action_idx = -1
+        mrpt = -1
+        for i, op_info in enumerate(avai_ops):
+            job = jobs[op_info['job_id']]
+            if job.done():
+                continue
+            if job.remain_process_time() > mrpt:
+                mrpt = job.remain_process_time()
+                action_idx = i
+        return action_idx
+        
 
 
 class FIFO:

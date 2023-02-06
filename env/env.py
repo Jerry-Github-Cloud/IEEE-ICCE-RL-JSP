@@ -2,14 +2,15 @@ import gym
 from collections import defaultdict
 from multipledispatch import dispatch
 from env.utils.instance import JSP_Instance
-from heuristic import MOR, FIFO, SPT
+from heuristic import *
 
 class JSP_Env(gym.Env):
     def __init__(self, args):
         self.args = args
         self.device = args.device
         self.jsp_instance = JSP_Instance(args)
-        self.rules = [MOR(), FIFO(), SPT()]
+        # self.rules = [MOR(), FIFO(), SPT()]
+        self.rules = [EDD(), FIFO(), LPT(), LS(), MOR(), LRPT(), SPT(), SRPT()]
         self.rules_count = dict.fromkeys([rule.name for rule in self.rules], 0)
 
     @dispatch(list, object)
@@ -28,7 +29,7 @@ class JSP_Env(gym.Env):
         avai_ops, done = self.step(avai_ops, action_idx)
         state = self.get_graph_data(self.device)
         # reward = -(self.get_makespan() - prev_makespan)
-        reward = -self.get_makespan() / 1000
+        reward = self.get_reward()
         return state, reward, done, {}
     
     def reset(self):
@@ -54,6 +55,10 @@ class JSP_Env(gym.Env):
             #       f"\tDue date: {job.due_date}"
             #       f"\tFinish time: {job.operations[-1].finish_time}")
         return tardiness
+
+    def get_reward(self):
+        return -self.get_makespan()
+        # return -self.get_tardiness() 
     
     def get_graph_data(self, device):
         return self.jsp_instance.get_graph_data(device)

@@ -11,6 +11,7 @@ class JSP_Instance:
         self.args = args
         self.process_time_range = [1, args.max_process_time]
         self.no_op_avai_ops = []
+        self.num_job_type = 3
 
     # basic functions
     def generate_case(self):
@@ -27,7 +28,8 @@ class JSP_Instance:
                 self.process_time_range)
             self.jobs.append(Job(job_id=job_id,
                                  arrival_time=self.arrival_time,
-                                 op_config=op_config))
+                                 op_config=op_config,
+                                 job_type=random.randint(0, self.num_job_type)))
             self.graph.add_job(self.jobs[-1])
 
     def reset(self):
@@ -70,8 +72,10 @@ class JSP_Instance:
                 op_config.append({"id": j,
                                   "machine_id": machine_id,
                                   "process_time": process_time})
-            self.jobs.append(
-                Job(job_id=i, arrival_time=self.arrival_time, op_config=op_config))
+            self.jobs.append(Job(job_id=i,
+                                 arrival_time=self.arrival_time,
+                                 job_type=i % self.num_job_type,
+                                 op_config=op_config))
             self.graph.add_job(self.jobs[-1])
 
     def done(self):
@@ -95,22 +99,54 @@ class JSP_Instance:
 
     def assign(self, avai_ops, idx):
         job_id, op_id = avai_ops[idx]['job_id'], avai_ops[idx]['op_id']
-        assert op_id == self.jobs[job_id].current_op_id, f"op_id: {op_id}\tself.jobs[{job_id}].current_op_id: {self.jobs[job_id].current_op_id}"
-        op = self.jobs[job_id].current_op()
+        job = self.jobs[job_id]
+        assert op_id == job.current_op_id, \
+            f"op_id: {op_id}\tself.jobs[{job_id}].current_op_id: {self.jobs[job_id].current_op_id}"
+        op = job.current_op()
+        machine = self.machines[op.machine_id]
+        setup_time = machine.get_setup_time(op, active=True)
         op_info = {
             "job_id": job_id,
             "op_id": op.op_id,
             "current_time": max(self.current_time, op.avai_time),
-            "process_time": op.process_time
+            "process_time": op.process_time,
+            "job_type": op.job_type,
         }
-        op_finished_time = self.machines[op.machine_id].process_op(op_info)
-        self.jobs[job_id].current_op().update(
-            max(self.current_time, op.avai_time))
+        start_time, avai_time = machine.process_op(op_info, setup_time)
+        job.current_op().update(start_time)
+        print(f"\tO{op_info['job_id']},{op_info['op_id']}"
+              f"\tself.current_time: {self.current_time}"
+              f"\top.avai_time: {op.avai_time}")
         # add op to logger
         self.logger.add_op(op)
-        if self.jobs[job_id].next_op() != -1:
-            self.jobs[job_id].update_current_op(avai_time=op_finished_time)
-        self.register_time(op_finished_time)
+        if job.next_op() != -1:
+            job.update_current_op(avai_time=avai_time)
+        self.register_time(avai_time)
+        # print(f"\t{self.time_stamp}")
+
+    # def assign(self, avai_ops, idx):
+    #     job_id, op_id = avai_ops[idx]['job_id'], avai_ops[idx]['op_id']
+    #     job = self.jobs[job_id]
+    #     assert op_id == job.current_op_id, \
+    #         f"op_id: {op_id}\tself.jobs[{job_id}].current_op_id: {self.jobs[job_id].current_op_id}"
+    #     op = job.current_op()
+    #     machine = self.machines[op.machine_id]
+    #     op_info = {
+    #         "job_id": job_id,
+    #         "op_id": op.op_id,
+    #         "current_time": max(self.current_time, op.avai_time),
+    #         "process_time": op.process_time,
+    #         "job_type": op.job_type,
+    #     }
+    #     setup_time = machine.get_setup_time(op)
+    #     machine.current_time += setup_time
+    #     op.start_time = machine.current_time
+    #     if job.next_op() != -1:
+    #         job.update_current_op(avai_time=machine.current_time)
+    #     machine.current_time += op.process_time
+    #     op.finish_time = machine.current_time
+        
+    #     self.logger.add_op(op)
 
     # about time control
     def register_time(self, time):
@@ -121,46 +157,67 @@ class JSP_Instance:
         self.current_time = self.time_stamp.pop(0)
 
     def available_ops(self):
-        if self.done():
+        if self.done() == True:
             return None
         avai_ops = []
-        no_op_avai_ops = []
         for m in self.machines:
-            if m.avai_time() > self.current_time:
-                continue
-
-            min_waiting_time = 1e6
             for job in self.jobs:
-                if job.done() or m.machine_id != job.current_op().machine_id:
-                    continue
-
-                if job.current_op().avai_time <= self.current_time:
-                    avai_ops.append({'m_id': m.machine_id,
-                                     'job_id': job.job_id,
-                                     'op_id': job.current_op_id,
-                                     'node_id': job.current_op().node_id})
-                    min_waiting_time = min(
-                        min_waiting_time, job.current_op().process_time)
-
-            if min_waiting_time == 1e6:
-                continue
-
-            for job in self.jobs:
-                if job.done() or m.machine_id != job.current_op().machine_id:
-                    continue
-
-                if job.current_op().avai_time > self.current_time and job.current_op(
-                ).avai_time < self.current_time + min_waiting_time:
-                    no_op_avai_ops.append({'m_id': m.machine_id,
-                                           'job_id': job.job_id,
-                                           'op_id': job.current_op_id,
-                                           'node_id': job.current_op().node_id})
-
-        if len(avai_ops) == 1 and len(no_op_avai_ops) == 0:
+                if job.done() == False and job.current_op().avai_time <= self.current_time:
+                    if m.avai_time() <= self.current_time and m.machine_id == job.current_op().machine_id:
+                        avai_ops.append({'m_id': m.machine_id, 'job_id': job.job_id, 'op_id': job.current_op_id, 'node_id': job.current_op().node_id})
+            
+        if len(avai_ops) == 1:
             self.assign(avai_ops, 0)
         else:
-            if len(avai_ops) >= 1:
-                return avai_ops + no_op_avai_ops
-
+            if len(avai_ops) > 1:
+                return avai_ops
+            
         self.update_time()
         return self.available_ops()
+
+    # def available_ops(self):
+    #     if self.done():
+    #         return None
+    #     avai_ops = []
+    #     no_op_avai_ops = []
+    #     for m in self.machines:
+    #         if m.avai_time() > self.current_time:
+    #             continue
+
+    #         min_waiting_time = 1e6
+    #         for job in self.jobs:
+    #             if job.done() or m.machine_id != job.current_op().machine_id:
+    #                 continue
+
+    #             if job.current_op().avai_time <= self.current_time:
+    #                 avai_ops.append({'m_id': m.machine_id,
+    #                                  'job_id': job.job_id,
+    #                                  'op_id': job.current_op_id,
+    #                                  'node_id': job.current_op().node_id})
+    #                 min_waiting_time = min(
+    #                     min_waiting_time, job.current_op().process_time)
+
+    #         if min_waiting_time == 1e6:
+    #             continue
+
+    #         for job in self.jobs:
+    #             if job.done() or m.machine_id != job.current_op().machine_id:
+    #                 continue
+
+    #             if job.current_op().avai_time > self.current_time and job.current_op(
+    #             ).avai_time < self.current_time + min_waiting_time:
+    #                 no_op_avai_ops.append({'m_id': m.machine_id,
+    #                                        'job_id': job.job_id,
+    #                                        'op_id': job.current_op_id,
+    #                                        'node_id': job.current_op().node_id})
+
+    #     if len(avai_ops) == 1 and len(no_op_avai_ops) == 0:
+    #         self.assign(avai_ops, 0)
+    #     else:
+    #         if len(avai_ops) >= 1:
+    #             return avai_ops + no_op_avai_ops
+
+    #     self.update_time()
+    #     return self.available_ops()
+    
+    

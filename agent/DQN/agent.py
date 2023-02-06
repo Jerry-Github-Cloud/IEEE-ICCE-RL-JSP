@@ -9,12 +9,12 @@ from agent.DQN.dqn import DQN
 
 
 class DQN_Agent:
-    def __init__(self, args):
+    def __init__(self, args, out_dim):
         self.total_steps = 0
         self.epsilon = args.eps
         self.args = args
-        self.dqn = DQN(args)
-        self.action_space = Discrete(3)
+        self.dqn = DQN(args, out_dim)
+        self.action_space = Discrete(out_dim)
 
     def select_action(self, state, random=True, test_only=False):
         if random:

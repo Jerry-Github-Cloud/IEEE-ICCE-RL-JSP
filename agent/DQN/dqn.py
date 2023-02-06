@@ -96,8 +96,7 @@ class Net(nn.Module):
         return x
 
 class DQN:
-    def __init__(self, args):
-        out_dim = 3
+    def __init__(self, args, out_dim):
         self._behavior_net = Net(state_dim=32, action_dim=out_dim).to(args.device)
         self._target_net = Net(state_dim=32, action_dim=out_dim).to(args.device)
 

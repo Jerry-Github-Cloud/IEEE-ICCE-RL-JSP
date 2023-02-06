@@ -10,22 +10,36 @@ class Machine:
     def __init__(self, machine_id):
         self.machine_id = machine_id
         self.processed_op_history = []
+        self.current_time = 0
 
-    def process_op(self, op_info):
-        machine_avai_time = self.avai_time()
+    def process_op(self, op_info, setup_time=0):
+        machine_avai_time = self.avai_time(setup_time)
         start_time = max(op_info["current_time"], machine_avai_time)
-        assert start_time == op_info["current_time"]
+        # assert start_time == op_info["current_time"]
         op_info["start_time"] = start_time
-        finished_time = start_time + op_info["process_time"]
+        finish_time = start_time + op_info["process_time"]
         self.processed_op_history.append(op_info)
-        return finished_time
+        self.current_time += op_info["process_time"]
+        return start_time, finish_time
 
-    def avai_time(self):
+    def get_setup_time(self, op, active=False):
+        # if not active or len(self.processed_op_history) == 0:
+        #     return 0
+        # return 10
+        if not active or len(self.processed_op_history) == 0:
+            return 0
+        prev_op_info = self.processed_op_history[-1]
+        if prev_op_info["job_type"] == op.job_type:
+            return 0
+        else:
+            return 10
+
+    def avai_time(self, setup_time=0):
         if len(self.processed_op_history) == 0:
             return 0
         else:
             return self.processed_op_history[-1]["start_time"] + \
-                self.processed_op_history[-1]["process_time"]
+                self.processed_op_history[-1]["process_time"] + setup_time
 
     def get_status(self, current_time):
         if current_time >= self.avai_time():
@@ -33,19 +47,24 @@ class Machine:
         else:
             return PROCESSED
 
+    def last_job_id(self):
+        return self.processed_op_history[-1]["job_id"]
+
 
 class Job:
-    def __init__(self, job_id, arrival_time, op_config):
+    def __init__(self, job_id, arrival_time, job_type, op_config):
         self.job_id = job_id
         self.arrival_time = arrival_time
         self.operations = [
             Operation(
                 self.job_id,
                 self.arrival_time,
+                job_type,
                 config) for config in op_config]
         self.due_date = self.arrival_time + 2 * sum([op.process_time for op in self.operations])
         self.op_num = len(op_config)
         self.current_op_id = 0  # ready to be processed
+        self.job_type = job_type
 
     def reset(self):
         self.current_op_id = 0
@@ -82,7 +101,7 @@ class Job:
 
 
 class Operation:
-    def __init__(self, job_id, job_arrival_time, config):
+    def __init__(self, job_id, job_arrival_time, job_type, config):
         self.job_id = job_id
         self.op_id = config['id']
         self.machine_id = config['machine_id']
@@ -96,6 +115,7 @@ class Operation:
             self.avai_time = MAX
         self.start_time = -1  # the time when op processed on machine
         self.finish_time = -1
+        self.job_type = job_type
 
     def reset(self):
         if self.op_id == 0:
