@@ -10,7 +10,8 @@ class JSP_Env(gym.Env):
         self.device = args.device
         self.jsp_instance = JSP_Instance(args)
         # self.rules = [MOR(), FIFO(), SPT()]
-        self.rules = [EDD(), FIFO(), LPT(), LS(), MOR(), LRPT(), SPT(), SRPT()]
+        # self.rules = [EDD(), FIFO(), LOR(), LPT(), LS(), MOR(), LRPT(), SPT(), SRPT()]
+        self.rules = [FIFO(), LS(), MOR(), LRPT(), SPT(), ]
         self.rules_count = dict.fromkeys([rule.name for rule in self.rules], 0)
 
     @dispatch(list, object)

@@ -12,6 +12,7 @@ class JSP_Instance:
         self.process_time_range = [1, args.max_process_time]
         self.no_op_avai_ops = []
         self.num_job_type = 3
+        self.setup_count = 0
 
     # basic functions
     def generate_case(self):
@@ -104,7 +105,9 @@ class JSP_Instance:
             f"op_id: {op_id}\tself.jobs[{job_id}].current_op_id: {self.jobs[job_id].current_op_id}"
         op = job.current_op()
         machine = self.machines[op.machine_id]
-        setup_time = machine.get_setup_time(op, active=True)
+        setup_time = machine.get_setup_time(op, active=False)
+        if setup_time != 0:
+            self.setup_count += 1
         op_info = {
             "job_id": job_id,
             "op_id": op.op_id,
@@ -114,39 +117,15 @@ class JSP_Instance:
         }
         start_time, avai_time = machine.process_op(op_info, setup_time)
         job.current_op().update(start_time)
-        print(f"\tO{op_info['job_id']},{op_info['op_id']}"
-              f"\tself.current_time: {self.current_time}"
-              f"\top.avai_time: {op.avai_time}")
+        # print(f"\tO{op_info['job_id']},{op_info['op_id']}"
+        #       f"\tself.current_time: {self.current_time}"
+        #       f"\top.avai_time: {op.avai_time}")
         # add op to logger
         self.logger.add_op(op)
         if job.next_op() != -1:
             job.update_current_op(avai_time=avai_time)
         self.register_time(avai_time)
         # print(f"\t{self.time_stamp}")
-
-    # def assign(self, avai_ops, idx):
-    #     job_id, op_id = avai_ops[idx]['job_id'], avai_ops[idx]['op_id']
-    #     job = self.jobs[job_id]
-    #     assert op_id == job.current_op_id, \
-    #         f"op_id: {op_id}\tself.jobs[{job_id}].current_op_id: {self.jobs[job_id].current_op_id}"
-    #     op = job.current_op()
-    #     machine = self.machines[op.machine_id]
-    #     op_info = {
-    #         "job_id": job_id,
-    #         "op_id": op.op_id,
-    #         "current_time": max(self.current_time, op.avai_time),
-    #         "process_time": op.process_time,
-    #         "job_type": op.job_type,
-    #     }
-    #     setup_time = machine.get_setup_time(op)
-    #     machine.current_time += setup_time
-    #     op.start_time = machine.current_time
-    #     if job.next_op() != -1:
-    #         job.update_current_op(avai_time=machine.current_time)
-    #     machine.current_time += op.process_time
-    #     op.finish_time = machine.current_time
-        
-    #     self.logger.add_op(op)
 
     # about time control
     def register_time(self, time):

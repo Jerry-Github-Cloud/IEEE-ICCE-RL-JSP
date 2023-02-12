@@ -34,11 +34,18 @@ def solve(file_name, time_limit, num_thread=8, export=False):
     #     [(1, 4), (2, 3)]  # Job2
     # ]
     jobs_data = load_instance(file_name)
+    jobs_due = []
+    for job in jobs_data:
+        due_date = 0
+        for item in job:
+            due_date += item[1]
+        due_date *= 2
+        jobs_due.append(due_date)
 
-    machines_count = 1 + max(task[0] for job in jobs_data for task in job)
+    machines_count = 1 + max(item[0] for job in jobs_data for item in job)
     all_machines = range(machines_count)
     # Computes horizon dynamically as the sum of all durations.
-    horizon = sum(task[1] for job in jobs_data for task in job)
+    horizon = sum(item[1] for job in jobs_data for item in job)
 
     # Create the model.
     model = cp_model.CpModel()
@@ -78,12 +85,22 @@ def solve(file_name, time_limit, num_thread=8, export=False):
                                 1].start >= all_tasks[job_id, task_id].end)
 
     # Makespan objective.
-    obj_var = model.NewIntVar(0, horizon, 'makespan')
-    model.AddMaxEquality(obj_var, [
+    makespan_var = model.NewIntVar(0, horizon, "makespan")
+    model.AddMaxEquality(makespan_var, [
         all_tasks[job_id, len(job) - 1].end
         for job_id, job in enumerate(jobs_data)
     ])
-    model.Minimize(obj_var)
+
+    # Tardiness objective
+    tardiness_var = model.NewIntVar(0, horizon, "tardiness")
+    for job_id, job in enumerate(jobs_data):
+        due = jobs_due[job_id]
+        complete = all_tasks[job_id, len(job) - 1].end
+        delay_var = model.NewIntVar(0, horizon, f"delay_{job_id}")
+        model.AddMaxEquality(delay_var, [(complete - due), 0])
+        tardiness_var += delay_var
+
+    model.Minimize(tardiness_var)
 
     # Creates the solver.
     solver = cp_model.CpSolver()

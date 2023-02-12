@@ -4,14 +4,14 @@ from datetime import datetime
 from collections import defaultdict
 import torch
 from torch.utils.tensorboard import SummaryWriter
-from agent.DQN.agent import DQN_Agent
+from agent.SoftDQN.agent import SoftDQNAgent
 from env.env import JSP_Env
 
 # torch.manual_seed(0)
 
 def train_dqn(args):
     env = JSP_Env(args)
-    agent = DQN_Agent(args, out_dim=len(env.rules))
+    agent = SoftDQNAgent(args, out_dim=len(env.rules))
 
     for episode in range(1, args.episode + 1):
         avai_ops = env.reset()
@@ -19,13 +19,10 @@ def train_dqn(args):
         while True:
             if agent.total_steps < args.warmup:
                 action = agent.select_action(state, random=True)
-                # print(f"rules_count: {env.rules_count}")
             else:
                 action = agent.select_action(state, random=False)
             next_state, reward, done, info = env.step(action)
             agent.add_transition((state, action, reward, next_state, done))
-            # assert not torch.all(state.x_dict['m'] == next_state.x_dict['m']).item(), f"{state.x_dict['m']}\n{next_state.x_dict['m']}"
-            # assert not torch.all(state.x_dict['op'] == next_state.x_dict['op']).item(), f"{state.x_dict['op']}\n{next_state.x_dict['op']}"
             state = next_state
             if done:
                 break
@@ -40,6 +37,7 @@ def train_dqn(args):
             if gap <= save_thr:
                 agent.save(os.path.join(weight_dir, f"DQN_ep{episode}"))
             eval_dqn(agent, episode, "JSPLIB/instances/ta01")
+            # print(f"Episode {episode}\tEpsilon:{agent.epsilon}")
 
 
 def eval_dqn(agent, episode, instance_path):
@@ -111,7 +109,8 @@ if __name__ == "__main__":
     parser.add_argument('--gamma', default=1.0, type=float)
     parser.add_argument('--freq', default=4, type=int)
     parser.add_argument('--target_freq', default=1000, type=int)
-    parser.add_argument('--double', action='store_true')
+    # arguments for SoftDQN
+    parser.add_argument('--alpha', default=0.5, type=float)
     # arguments for env
     parser.add_argument('--data_size', type=int, default=10)
     parser.add_argument(
@@ -121,7 +120,7 @@ if __name__ == "__main__":
         help='Maximum Process Time of an Operation')
     args = parser.parse_args()
     print(args)
-    root_dir = "agent/DQN"
+    root_dir = "agent/SoftDQN"
     now_str = datetime.strftime(datetime.now(), "%Y%m%d_%H%M%S")
     result_dir = os.path.join(root_dir, "result", now_str)
     weight_dir = os.path.join(root_dir, "weight", now_str)

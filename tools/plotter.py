@@ -85,10 +85,10 @@ class Plotter(object):
 if __name__ == '__main__':
     # result_dir = "../result/instances"
     # timeline_dir = "../timeline/instances"
-    # result_dir = "../agent/Rule/result/instances"
-    # timeline_dir = "../agent/Rule/timeline/instances"
-    result_dir = "../agent/Rule/result/small_case"
-    timeline_dir = "../agent/Rule/timeline/small_case"
+    result_dir = "../agent/Rule/result/instances"
+    timeline_dir = "../agent/Rule/timeline/instances"
+    # result_dir = "../agent/Rule/result/small_case"
+    # timeline_dir = "../agent/Rule/timeline/small_case"
     
     if not os.path.exists(timeline_dir):
         os.makedirs(timeline_dir)

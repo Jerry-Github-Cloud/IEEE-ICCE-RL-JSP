@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 from collections import defaultdict
 import torch
 
-from agent.DQN.dqn import DQN
+from agent.SoftDQN.soft_dqn import DQN
 
 
-class DQN_Agent:
+class SoftDQNAgent:
     def __init__(self, args, out_dim):
         self.total_steps = 0
         self.epsilon = args.eps
@@ -35,6 +35,7 @@ class DQN_Agent:
         state, action, reward, next_state, done = transition
         # print(f"state: {state}")
         self.dqn.append(state, action, reward, next_state, done)
+        # print(f"len(self.dqn._memory): {len(self.dqn._memory)}")
         if self.total_steps >= self.args.warmup:
             self.dqn.update(self.total_steps)
 

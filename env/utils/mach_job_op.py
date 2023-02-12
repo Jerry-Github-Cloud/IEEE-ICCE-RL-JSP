@@ -97,7 +97,10 @@ class Job:
         if self.done():
             return 0
         else:
-            return sum(op.process_time for op in self.operations)
+            rpt = 0
+            for i in range(self.current_op_id, len(self.operations)):
+                rpt += self.operations[i].process_time
+            return rpt
 
 
 class Operation:

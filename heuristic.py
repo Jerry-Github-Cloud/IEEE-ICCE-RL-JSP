@@ -7,23 +7,6 @@ from params import get_args
 MAX = 1e6
 
 
-# def heuristic_metric(env, avai_ops, rule):
-#     mor = MOR()
-#     fifo = FIFO()
-#     spt = SPT()
-#     while True:
-#         if rule == "Random":
-#             action_idx = Random(avai_ops)
-#         elif rule == "MOR":
-#             action_idx = mor(avai_ops, env.jsp_instance.jobs)
-#         elif rule == "FIFO":
-#             action_idx = fifo(avai_ops, env.jsp_instance.jobs)
-#         elif rule == "SPT":
-#             action_idx = spt(avai_ops, env.jsp_instance.jobs)
-#         avai_ops, done = env.step(avai_ops, action_idx)
-#         if done:
-#             return env.get_makespan(), env.get_tardiness()
-
 def heuristic_metric(env, avai_ops, rule_name):
     rules = {
         "CR":   CR(),
@@ -32,7 +15,7 @@ def heuristic_metric(env, avai_ops, rule_name):
         "LPT":  LPT(),
         "LS":   LS(),
         "MOR":  MOR(),
-        "MRPT": LRPT(),
+        "LRPT": LRPT(),
         "SPT":  SPT(),
         "SRPT": SRPT(),
     }
@@ -120,19 +103,37 @@ class MOR:
         return action_idx
 
 
+class LOR:
+    def __init__(self):
+        self.name = "LOR"
+
+    def __call__(self, avai_ops, jobs):
+        min_remaining_op = MAX
+        action_idx = -1
+        for i in range(len(avai_ops)):
+            op_info = avai_ops[i]
+            job = jobs[op_info['job_id']]
+            op = job.operations[op_info['op_id']]
+            if len(job.operations) - op.op_id < min_remaining_op:
+                min_remaining_op = len(job.operations) - op.op_id
+                action_idx = i
+        return action_idx
+
+
 class LRPT:
     def __init__(self):
         self.name = "LRPT"
 
     def __call__(self, avai_ops, jobs):
         action_idx = -1
-        mrpt = -1
+        lrpt = -1
         for i, op_info in enumerate(avai_ops):
             job = jobs[op_info['job_id']]
             if job.done():
                 continue
-            if job.remain_process_time() > mrpt:
-                mrpt = job.remain_process_time()
+            rpt = job.remain_process_time()
+            if rpt > lrpt:
+                lrpt = rpt
                 action_idx = i
         return action_idx
         
@@ -196,8 +197,9 @@ class SRPT:
             job = jobs[op_info['job_id']]
             if job.done():
                 continue
-            if job.remain_process_time() < srpt:
-                srpt = job.remain_process_time()
+            rpt = job.remain_process_time()
+            if rpt < srpt:
+                srpt = rpt
                 action_idx = i
         return action_idx
 

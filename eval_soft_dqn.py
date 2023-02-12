@@ -3,12 +3,13 @@ import torch
 import argparse
 from datetime import datetime
 from collections import defaultdict
-from agent.DQN.agent import DQN_Agent
+from agent.SoftDQN.agent import SoftDQNAgent
 from env.env import JSP_Env
+
 
 def eval_dqn(weight_path, instance_path):
     env = JSP_Env(args)
-    agent = DQN_Agent(args, out_dim=len(env.rules))
+    agent = SoftDQNAgent(args, out_dim=len(env.rules))
     agent.load(weight_path)
     avai_ops = env.load_instance(instance_path)
     job_num = env.jsp_instance.initial_job_num
@@ -36,6 +37,7 @@ def eval_dqn(weight_path, instance_path):
         f"{env.rules_count}\t"
         f"{round((toc - tic).total_seconds(), 2)}\t")
 
+
 def eval_ta(weight_path):
     total_gap = 0
     total_case_num = 0
@@ -60,7 +62,7 @@ def eval_ta(weight_path):
             line = line.rstrip('\n').split(',')
             instance, op_ms = line[0], int(line[3])
             env = JSP_Env(args)
-            agent = DQN_Agent(args, out_dim=len(env.rules))
+            agent = SoftDQNAgent(args, out_dim=len(env.rules))
             agent.load(weight_path)
             avai_ops = env.load_instance("./JSPLIB/instances/" + instance)
             state = env.get_graph_data(args.device)
@@ -76,6 +78,7 @@ def eval_ta(weight_path):
         total_case_num += case_num
         print(f"size: {size}\tgap: {round(size_gap / case_num, 3)}")
     print(f"total gap: {round(total_gap / total_case_num, 3)}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -100,16 +103,15 @@ if __name__ == "__main__":
         help='Maximum Process Time of an Operation')
     args = parser.parse_args()
 
-    # weight_path = "agent/DQN/weight/20230208_160648/DQN_ep1000"
-    # weight_path = "agent/DQN/weight/20230211_155712/DQN_ep1000"
-    # weight_path = "agent/DQN/weight/20230212_163624/DQN_ep200"
-    weight_path = "agent/DQN/weight/20230212_172921/DQN_ep210"
+    # weight_path = "agent/SoftDQN/weight/20230212_124705/DQN_ep50"
+    # weight_path = "agent/SoftDQN/weight/20230212_124705/DQN_ep230"
+    # weight_path = "agent/SoftDQN/weight/20230212_124705/DQN_ep350"
+    weight_path = "agent/SoftDQN/weight/20230212_162152/DQN_ep40"
     print(weight_path)
     eval_ta(weight_path)
-    
+
     # instance_dir = "JSPLIB/instances"
     # for instance_name in os.listdir(instance_dir):
     #     instance_path = os.path.join(instance_dir, instance_name)
     #     eval_dqn(weight_path, instance_path)
     # print()
-        

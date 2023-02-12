@@ -75,7 +75,7 @@ class Net(nn.Module):
         super(Net, self).__init__()
         self.layer_list = []
         self.gnn = GNN()
-        
+
         for i in range(num_layer):
             if i == 0:
                 self.layer_list.append(nn.Linear(state_dim, hidden_dim))
@@ -147,16 +147,10 @@ class DQN:
             q_value = q_value[:,action]
             
             with torch.no_grad():
-                if self.args.double:
-                    # print("Double DQN")
-                    _, a_next = torch.max(self._behavior_net(next_state), dim=1, keepdim=False)
-                    q_next = self._target_net(next_state)[:,a_next][0]
-                else:
-                    q_next, _ = torch.max(self._target_net(next_state), dim=1, keepdim=False)
+                q_next = self.args.alpha * torch.logsumexp(self._target_net(state) / self.args.alpha, dim=1, keepdim=False)
                 q_target = reward + gamma * q_next * (1 - done)
                 q_target = q_target.detach()
             criterion = nn.MSELoss()
-            # print(f"\tq_target: {q_target}\tq_value: {q_value}")
             loss = criterion(q_target, q_value)
             losses.append(loss) 
         # gradient clipping
