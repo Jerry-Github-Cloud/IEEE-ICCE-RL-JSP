@@ -27,7 +27,11 @@ class Plotter(object):
         return 'Machine %d' %(op_info['machine_id'])
 
     def _get_color(self, op_info):
-        color = ColorHash(op_info['job_type'])
+        # color = ColorHash(op_info['job_type'])
+        # return color.hex
+        if op_info['rule_name'] == None:
+            return "#C0C0C0"
+        color = ColorHash(op_info['rule_name'])
         return color.hex
 
     def plot_googlechart_timeline(self, html_out_file):
@@ -85,10 +89,12 @@ class Plotter(object):
 if __name__ == '__main__':
     # result_dir = "../result/instances"
     # timeline_dir = "../timeline/instances"
-    result_dir = "../agent/Rule/result/instances"
-    timeline_dir = "../agent/Rule/timeline/instances"
+    # result_dir = "../agent/Rule/result/instances"
+    # timeline_dir = "../agent/Rule/timeline/instances"
     # result_dir = "../agent/Rule/result/small_case"
     # timeline_dir = "../agent/Rule/timeline/small_case"
+    result_dir = "../agent/SoftDQN/result/20230212_181516"
+    timeline_dir = "../agent/SoftDQN/timeline/20230212_181516"
     
     if not os.path.exists(timeline_dir):
         os.makedirs(timeline_dir)

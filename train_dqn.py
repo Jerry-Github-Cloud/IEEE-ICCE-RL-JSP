@@ -36,7 +36,7 @@ def train_dqn(args):
                 f"Step: {agent.total_steps}\t"
                 f"epsilon: {round(agent.epsilon, 3)}\t"
                 f"gap: {round(gap, 3)}\t")
-            save_thr = 0.22
+            save_thr = 0.2
             if gap <= save_thr:
                 agent.save(os.path.join(weight_dir, f"DQN_ep{episode}"))
             eval_dqn(agent, episode, "JSPLIB/instances/ta01")

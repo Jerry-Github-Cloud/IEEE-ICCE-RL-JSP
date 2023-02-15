@@ -15,7 +15,7 @@ def heuristic_metric(env, avai_ops, rule_name):
         "LPT":  LPT(),
         "LS":   LS(),
         "MOR":  MOR(),
-        "LRPT": LRPT(),
+        "LRPT": MWKR(),
         "SPT":  SPT(),
         "SRPT": SRPT(),
     }
@@ -120,9 +120,9 @@ class LOR:
         return action_idx
 
 
-class LRPT:
+class MWKR:
     def __init__(self):
-        self.name = "LRPT"
+        self.name = "MWKR"
 
     def __call__(self, avai_ops, jobs):
         action_idx = -1
@@ -136,7 +136,6 @@ class LRPT:
                 lrpt = rpt
                 action_idx = i
         return action_idx
-        
 
 
 class FIFO:

@@ -5,7 +5,7 @@ from random import sample
 from params import get_args
 from env.env import JSP_Env
 from datetime import datetime
-from heuristic import heuristic_metric
+from heuristic import *
 
 
 def ta_gap():
@@ -22,7 +22,7 @@ def ta_gap():
     ]
     # size_list = ['15x15', '20x15',]
     env = JSP_Env(args)
-    for action, rule in enumerate(env.rules):
+    for action, rule in env.rules:
         total_gap = 0
         total_case_num = 0
         for size in size_list:

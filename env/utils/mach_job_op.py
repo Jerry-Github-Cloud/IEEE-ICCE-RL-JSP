@@ -119,6 +119,7 @@ class Operation:
         self.start_time = -1  # the time when op processed on machine
         self.finish_time = -1
         self.job_type = job_type
+        self.rule_name = None
 
     def reset(self):
         if self.op_id == 0:

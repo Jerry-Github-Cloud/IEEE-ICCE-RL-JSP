@@ -1,10 +1,22 @@
 import os
 import torch
+import random
 import argparse
+import numpy as np
 from datetime import datetime
-from collections import defaultdict
+from collections import defaultdict, Counter
 from agent.DQN.agent import DQN_Agent
 from env.env import JSP_Env
+
+seed = 1000
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+np.random.seed(seed)
+random.seed(seed)
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
+
 
 def eval_dqn(weight_path, instance_path):
     env = JSP_Env(args)
@@ -36,10 +48,13 @@ def eval_dqn(weight_path, instance_path):
         f"{env.rules_count}\t"
         f"{round((toc - tic).total_seconds(), 2)}\t")
 
+
 def eval_ta(weight_path):
     total_gap = 0
     total_case_num = 0
-    size_list = os.listdir("./JSPLIB/TA")
+    total_rules_count = Counter()
+    ta_dir = "./JSPLIB/TA"
+    size_list = os.listdir(ta_dir)
     size_list = [
         '15x15',
         '20x15',
@@ -54,7 +69,7 @@ def eval_ta(weight_path):
     for size in size_list:
         size_gap = 0
         case_num = 0
-        lines = open("./JSPLIB/TA/" + size).readlines()
+        lines = open(os.path.join(ta_dir, size)).readlines()
         for line in lines:
             case_num += 1
             line = line.rstrip('\n').split(',')
@@ -72,10 +87,13 @@ def eval_ta(weight_path):
                     makespan = env.get_makespan()
                     size_gap += (makespan - op_ms) / op_ms
                     break
+            total_rules_count += Counter(env.rules_count)
         total_gap += size_gap
         total_case_num += case_num
         print(f"size: {size}\tgap: {round(size_gap / case_num, 3)}")
     print(f"total gap: {round(total_gap / total_case_num, 3)}")
+    print(f"total rules count: {total_rules_count}")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -103,13 +121,17 @@ if __name__ == "__main__":
     # weight_path = "agent/DQN/weight/20230208_160648/DQN_ep1000"
     # weight_path = "agent/DQN/weight/20230211_155712/DQN_ep1000"
     # weight_path = "agent/DQN/weight/20230212_163624/DQN_ep200"
-    weight_path = "agent/DQN/weight/20230212_172921/DQN_ep210"
+    # weight_path = "agent/DQN/weight/20230212_172921/DQN_ep210"
+    # weight_path = "agent/DQN/weight/20230212_172921/DQN_ep250"
+    # weight_path = "agent/DQN/weight/20230212_181108/DQN_ep350"
+    # weight_path = "agent/DQN/weight/20230212_205916/DQN_ep20"
+    # weight_path = "agent/DQN/weight/20230212_205916/DQN_ep100"
+    weight_path = "agent/DQN/weight/20230212_221009/DQN_ep4480"
     print(weight_path)
     eval_ta(weight_path)
-    
+
     # instance_dir = "JSPLIB/instances"
     # for instance_name in os.listdir(instance_dir):
     #     instance_path = os.path.join(instance_dir, instance_name)
     #     eval_dqn(weight_path, instance_path)
     # print()
-        

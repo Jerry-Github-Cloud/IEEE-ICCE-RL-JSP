@@ -98,12 +98,13 @@ class JSP_Instance:
         data = self.graph.get_data().to(device)
         return data
 
-    def assign(self, avai_ops, idx):
+    def assign(self, avai_ops, idx, rule_name=None):
         job_id, op_id = avai_ops[idx]['job_id'], avai_ops[idx]['op_id']
         job = self.jobs[job_id]
         assert op_id == job.current_op_id, \
             f"op_id: {op_id}\tself.jobs[{job_id}].current_op_id: {self.jobs[job_id].current_op_id}"
         op = job.current_op()
+        op.rule_name = rule_name
         machine = self.machines[op.machine_id]
         setup_time = machine.get_setup_time(op, active=False)
         if setup_time != 0:

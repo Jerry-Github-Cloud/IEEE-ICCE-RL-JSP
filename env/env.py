@@ -10,13 +10,13 @@ class JSP_Env(gym.Env):
         self.device = args.device
         self.jsp_instance = JSP_Instance(args)
         # self.rules = [MOR(), FIFO(), SPT()]
-        # self.rules = [EDD(), FIFO(), LOR(), LPT(), LS(), MOR(), LRPT(), SPT(), SRPT()]
-        self.rules = [FIFO(), LS(), MOR(), LRPT(), SPT(), ]
+        # self.rules = [EDD(), FIFO(), LOR(), LPT(), LS(), MOR(), MWKR(), SPT(), SRPT()]
+        self.rules = [FIFO(), LS(), MOR(), MWKR(), SPT(), ]
         self.rules_count = dict.fromkeys([rule.name for rule in self.rules], 0)
 
-    @dispatch(list, object)
-    def step(self, avai_ops, action_idx):
-        self.jsp_instance.assign(avai_ops, action_idx)
+    @dispatch(list, object, str)
+    def step(self, avai_ops, action_idx, rule_name=None):
+        self.jsp_instance.assign(avai_ops, action_idx, rule_name)
         avai_ops = self.jsp_instance.current_avai_ops()
         return avai_ops, self.done()
 
@@ -24,10 +24,11 @@ class JSP_Env(gym.Env):
     def step(self, action):
         avai_ops = self.jsp_instance.current_avai_ops()
         jobs = self.jsp_instance.jobs
-        action_idx = self.rules[action](avai_ops, jobs)
-        self.rules_count[self.rules[action].name] += 1
+        rule = self.rules[action]
+        action_idx = rule(avai_ops, jobs)
+        self.rules_count[rule.name] += 1
         prev_makespan = self.get_makespan()
-        avai_ops, done = self.step(avai_ops, action_idx)
+        avai_ops, done = self.step(avai_ops, action_idx, rule.name)
         state = self.get_graph_data(self.device)
         # reward = -(self.get_makespan() - prev_makespan)
         reward = self.get_reward()

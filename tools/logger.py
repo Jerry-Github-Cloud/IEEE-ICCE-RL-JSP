@@ -79,6 +79,7 @@ class Logger(object):
             'process_time': op.process_time,
             'finish_time':  op.finish_time,
             'job_type':     op.job_type,
+            'rule_name':    op.rule_name,
         }
         self.order += 1
         self.history.append(op_info)
