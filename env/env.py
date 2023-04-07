@@ -2,6 +2,7 @@ import gym
 from collections import defaultdict
 from multipledispatch import dispatch
 from env.utils.instance import JSP_Instance
+# from env.utils.instance_kuo_hao import JSP_Instance
 from heuristic import *
 
 class JSP_Env(gym.Env):
@@ -11,10 +12,11 @@ class JSP_Env(gym.Env):
         self.jsp_instance = JSP_Instance(args)
         # self.rules = [MOR(), FIFO(), SPT()]
         # self.rules = [EDD(), FIFO(), LOR(), LPT(), LS(), MOR(), MWKR(), SPT(), SRPT()]
-        self.rules = [FIFO(), LS(), MOR(), MWKR(), SPT(), ]
+        # self.rules = [FIFO(), LS(), MOR(), MWKR(), SPT(), ]
+        self.rules = [FIFO(), MOR(), MWKR(), SPT(), ]
         self.rules_count = dict.fromkeys([rule.name for rule in self.rules], 0)
 
-    @dispatch(list, object, str)
+    @dispatch(list, int)
     def step(self, avai_ops, action_idx, rule_name=None):
         self.jsp_instance.assign(avai_ops, action_idx, rule_name)
         avai_ops = self.jsp_instance.current_avai_ops()
@@ -28,7 +30,7 @@ class JSP_Env(gym.Env):
         action_idx = rule(avai_ops, jobs)
         self.rules_count[rule.name] += 1
         prev_makespan = self.get_makespan()
-        avai_ops, done = self.step(avai_ops, action_idx, rule.name)
+        avai_ops, done = self.step(avai_ops, action_idx, rule_name=rule.name)
         state = self.get_graph_data(self.device)
         # reward = -(self.get_makespan() - prev_makespan)
         reward = self.get_reward()

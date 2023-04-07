@@ -4,6 +4,7 @@ import random
 import argparse
 import numpy as np
 from datetime import datetime
+from multiprocessing import Process
 from collections import defaultdict, Counter
 from agent.DQN.agent import DQN_Agent
 from env.env import JSP_Env
@@ -48,7 +49,6 @@ def eval_dqn(weight_path, instance_path):
         f"{env.rules_count}\t"
         f"{round((toc - tic).total_seconds(), 2)}\t")
 
-
 def eval_ta(weight_path):
     total_gap = 0
     total_case_num = 0
@@ -66,6 +66,7 @@ def eval_ta(weight_path):
         '100x20',
     ]
     # size_list = ['15x15', '20x15',]
+    tic = datetime.now()
     for size in size_list:
         size_gap = 0
         case_num = 0
@@ -91,8 +92,10 @@ def eval_ta(weight_path):
         total_gap += size_gap
         total_case_num += case_num
         print(f"size: {size}\tgap: {round(size_gap / case_num, 3)}")
+    toc = datetime.now()
     print(f"total gap: {round(total_gap / total_case_num, 3)}")
     print(f"total rules count: {total_rules_count}")
+    print(f"{round((toc - tic).total_seconds(), 2)}")
 
 
 if __name__ == "__main__":
@@ -118,20 +121,7 @@ if __name__ == "__main__":
         help='Maximum Process Time of an Operation')
     args = parser.parse_args()
 
-    # weight_path = "agent/DQN/weight/20230208_160648/DQN_ep1000"
-    # weight_path = "agent/DQN/weight/20230211_155712/DQN_ep1000"
-    # weight_path = "agent/DQN/weight/20230212_163624/DQN_ep200"
-    # weight_path = "agent/DQN/weight/20230212_172921/DQN_ep210"
-    # weight_path = "agent/DQN/weight/20230212_172921/DQN_ep250"
-    # weight_path = "agent/DQN/weight/20230212_181108/DQN_ep350"
-    # weight_path = "agent/DQN/weight/20230212_205916/DQN_ep20"
-    # weight_path = "agent/DQN/weight/20230212_205916/DQN_ep100"
-    weight_path = "agent/DQN/weight/20230212_221009/DQN_ep4480"
+    weight_path = "agent/SoftDQN/weight/20230215_225054/DQN_ep4020"
     print(weight_path)
     eval_ta(weight_path)
 
-    # instance_dir = "JSPLIB/instances"
-    # for instance_name in os.listdir(instance_dir):
-    #     instance_path = os.path.join(instance_dir, instance_name)
-    #     eval_dqn(weight_path, instance_path)
-    # print()

@@ -49,34 +49,35 @@ def ta_gap():
 
 if __name__ == "__main__":
     args = get_args()
-    ta_gap()
+    # ta_gap()
     # # all cases
-    # args = get_args()
-    # instance_dir = "JSPLIB/instances"
-    # result_dir = "agent/Rule/result/instances"
-    # # instance_dir = "JSPLIB/small_case"
+    args = get_args()
+    instance_dir = "JSPLIB/instances"
+    result_dir = "agent/Rule/result/instances"
+    # instance_dir = "JSPLIB/small_case"
     # # result_dir = "agent/Rule/result/small_case"
     
     # # rule_names = ["CR", "EDD", "FIFO", "LPT", "LS", "MOR", "MRPT", "SPT", "SRPT"]
-    # rule_names = ["MOR", "FIFO", "SPT"]
-    # for instance_name in os.listdir(instance_dir):
-    #     for rule_name in rule_names:
-    #         env = JSP_Env(args)
-    #         avai_ops = env.load_instance(os.path.join(instance_dir, instance_name))
-    #         job_num = env.jsp_instance.initial_job_num
-    #         machine_num = env.jsp_instance.machine_num
-    #         tic = datetime.now()
-    #         makespan, tardiness = heuristic_metric(env, avai_ops, rule_name)
-    #         setup_count = env.jsp_instance.setup_count
-    #         toc = datetime.now()
-    #         print(f"{instance_name}\t"
-    #               f"{job_num}\t"
-    #               f"{machine_num}\t"
-    #               f"{rule_name:10}\t"
-    #               f"{makespan}\t"
-    #               f"{tardiness}\t"
-    #               f"{setup_count}\t"
-    #               f"{round((toc - tic).total_seconds(), 2)}")
-    #         result_path = os.path.join(
-    #             result_dir, f"{instance_name}_{rule_name}.json")
-    #         env.jsp_instance.logger.save(result_path)
+    rule_names = ["MOR", "FIFO", "SPT"]
+    # rule_names = ["MOR"]
+    for instance_name in os.listdir(instance_dir):
+        for rule_name in rule_names:
+            env = JSP_Env(args)
+            avai_ops = env.load_instance(os.path.join(instance_dir, instance_name))
+            job_num = env.jsp_instance.initial_job_num
+            machine_num = env.jsp_instance.machine_num
+            tic = datetime.now()
+            makespan, tardiness = heuristic_metric(env, avai_ops, rule_name)
+            setup_count = env.jsp_instance.setup_count
+            toc = datetime.now()
+            print(f"{instance_name}\t"
+                  f"{job_num}\t"
+                  f"{machine_num}\t"
+                  f"{rule_name:10}\t"
+                  f"{makespan}\t"
+                  f"{tardiness}\t"
+                  f"{setup_count}\t"
+                  f"{round((toc - tic).total_seconds(), 5)}")
+            # result_path = os.path.join(
+            #     result_dir, f"{instance_name}_{rule_name}.json")
+            # env.jsp_instance.logger.save(result_path)

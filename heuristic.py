@@ -29,7 +29,7 @@ def heuristic_metric(env, avai_ops, rule_name):
                 env.jsp_instance.current_time)
         else:
             action_idx = rules[rule_name](avai_ops, env.jsp_instance.jobs)
-        avai_ops, done = env.step(avai_ops, action_idx)
+        avai_ops, done = env.step(avai_ops, action_idx, rule_name=rule_name)
         if done:
             return env.get_makespan(), env.get_tardiness()
 

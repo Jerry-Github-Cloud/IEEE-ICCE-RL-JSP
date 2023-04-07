@@ -1,5 +1,7 @@
 import os
+import ctypes
 import argparse
+import multiprocessing as mp
 from datetime import datetime
 from collections import defaultdict
 import torch
@@ -7,7 +9,7 @@ from torch.utils.tensorboard import SummaryWriter
 from agent.SoftDQN.agent import SoftDQNAgent
 from env.env import JSP_Env
 
-# torch.manual_seed(0)
+instance_dir = "./JSPLIB/instances/"
 
 def train_dqn(args):
     env = JSP_Env(args)
@@ -28,22 +30,22 @@ def train_dqn(args):
                 break
         if episode % 10 == 0:
             gap = eval_ta(agent, episode)
+            # gap = para_eval_ta(agent, episode)
             print(
                 f"Episode: {episode}\t"
                 f"Step: {agent.total_steps}\t"
                 f"epsilon: {round(agent.epsilon, 3)}\t"
                 f"gap: {round(gap, 3)}\t")
-            save_thr = 0.2
+            save_thr = 0.19
             if gap <= save_thr:
-                agent.save(os.path.join(weight_dir, f"DQN_ep{episode}"))
+                agent.save(os.path.join(weight_dir, f"SoftDQN_ep{episode}"))
             eval_dqn(agent, episode, "JSPLIB/instances/ta01")
-            # print(f"Episode {episode}\tEpsilon:{agent.epsilon}")
 
 
 def eval_dqn(agent, episode, instance_path):
-    env = JSP_Env(args)
+    env = JSP_Env(dqn_args)
     avai_ops = env.load_instance(instance_path)
-    state = env.get_graph_data(args.device)
+    state = env.get_graph_data(dqn_args.device)
     while True:
         action = agent.select_action(state, random=False, test_only=True)
         state, reward, done, info = env.step(action)
@@ -66,20 +68,20 @@ def eval_dqn(agent, episode, instance_path):
 def eval_ta(agent, episode):
     total_gap = 0
     total_case_num = 0
-    size_list = os.listdir("./JSPLIB/TA")
+    size_list = os.listdir(ta_dir)
     # size_list = ['15x15', '20x15', '20x20', '30x15', '30x20', '50x15', '50x20', '100x20',]
     size_list = ['15x15', '20x15',]
     for size in size_list:
         size_gap = 0
         case_num = 0
-        lines = open("./JSPLIB/TA/" + size).readlines()
+        lines = open(os.path.join(ta_dir, size)).readlines()
         for line in lines:
             case_num += 1
             line = line.rstrip('\n').split(',')
             instance, op_ms = line[0], int(line[3])
-            env = JSP_Env(args)
+            env = JSP_Env(dqn_args)
             avai_ops = env.load_instance("./JSPLIB/instances/" + instance)
-            state = env.get_graph_data(args.device)
+            state = env.get_graph_data(dqn_args.device)
             while True:
                 action = agent.select_action(state, random=False, test_only=True)
                 state, reward, done, info = env.step(action)
@@ -92,7 +94,71 @@ def eval_ta(agent, episode):
         # print(f"\tsize: {size}\tcase_num: {case_num}")
     writer.add_scalar("total_TA", total_gap / total_case_num, episode)
     return total_gap / total_case_num
-    
+
+
+def eval_ta_worker(agent, env, dqn_args, total_gap, total_case_num, tasks):
+    for task in tasks:
+        instance, size, op_ms = task
+        avai_ops = env.load_instance(os.path.join(instance_dir, instance))
+        state = env.get_graph_data(dqn_args.device)
+        while True:
+            action = agent.select_action(
+                state, random=False, test_only=True)
+            state, reward, done, info = env.step(action)
+            if done:
+                makespan = env.get_makespan()
+                gap = (makespan - op_ms) / op_ms
+                with total_gap.get_lock():
+                    total_gap.value += gap
+                    total_case_num.value += 1
+                # print(f"{instance}\t{size}\t{makespan}\t{op_ms}\t{round(gap, 3)}")
+                break
+
+
+def load_task(ta_dir):
+    size_list = os.listdir(ta_dir)
+    all_task = defaultdict(list)
+    for size in size_list:
+        size_gap = 0
+        case_num = 0
+        lines = open(os.path.join(ta_dir, size)).readlines()
+        for id, line in enumerate(lines):
+            case_num += 1
+            line = line.rstrip('\n').split(',')
+            instance, num_job, num_machine, op_ms = line[0], int(
+                line[1]), int(
+                line[2]), int(
+                line[3])
+            all_task[id].append(tuple([instance, size, op_ms]))
+    return all_task
+
+
+def para_eval_ta(agent, episode):
+    all_task = load_task(ta_dir)
+    num_worker = len(all_task)
+    queue = mp.Queue()
+    env = JSP_Env(dqn_args)
+    total_gap = mp.Value(ctypes.c_double, 0.0)
+    total_case_num = mp.Value(ctypes.c_int, 0)
+    workers = [
+        mp.Process(
+            target=eval_ta_worker,
+            args=(
+                agent,
+                env,
+                dqn_args,
+                total_gap,
+                total_case_num,
+                all_task[id])) for id in range(num_worker)]
+    tic = datetime.now()
+    for worker in workers:
+        worker.start()
+    for worker in workers:
+        worker.join()
+    toc = datetime.now()
+    writer.add_scalar("total_TA", total_gap.value / total_case_num.value, episode)
+    return total_gap.value / total_case_num.value
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
@@ -118,8 +184,8 @@ if __name__ == "__main__":
         type=int,
         default=100,
         help='Maximum Process Time of an Operation')
-    args = parser.parse_args()
-    print(args)
+    dqn_args = parser.parse_args()
+    print(dqn_args)
     root_dir = "agent/SoftDQN"
     now_str = datetime.strftime(datetime.now(), "%Y%m%d_%H%M%S")
     result_dir = os.path.join(root_dir, "result", now_str)
@@ -133,4 +199,7 @@ if __name__ == "__main__":
         os.makedirs(logdir)
     writer = SummaryWriter(logdir)
     print(logdir)
-    train_dqn(args)
+    ta_dir = "./JSPLIB/TA"
+    mp.set_start_method('spawn')
+    train_dqn(dqn_args)
+

@@ -126,7 +126,6 @@ class JSP_Instance:
         if job.next_op() != -1:
             job.update_current_op(avai_time=avai_time)
         self.register_time(avai_time)
-        # print(f"\t{self.time_stamp}")
 
     # about time control
     def register_time(self, time):

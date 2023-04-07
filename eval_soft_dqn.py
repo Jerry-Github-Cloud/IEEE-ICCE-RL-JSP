@@ -90,7 +90,7 @@ def eval_ta(weight_path):
                     size_gap += (makespan - op_ms) / op_ms
                     break
             total_rules_count += Counter(env.rules_count)
-            env.jsp_instance.logger.save(os.path.join(result_dir, f"{instance}.json"))
+            # env.jsp_instance.logger.save(os.path.join(result_dir, f"{instance}.json"))
         total_gap += size_gap
         total_case_num += case_num
         print(f"size: {size}\tgap: {round(size_gap / case_num, 3)}")
@@ -130,14 +130,15 @@ if __name__ == "__main__":
     
     # eval one case
     # weight_path = "agent/SoftDQN/weight/20230212_181516/DQN_ep600"
-    weight_path = "agent/SoftDQN/weight/20230212_181516/DQN_ep2300"
+    # weight_path = "agent/SoftDQN/weight/20230212_181516/DQN_ep2300"
     # weight_path = "agent/SoftDQN/weight/20230212_181516/DQN_ep2320"
     # weight_path = "agent/SoftDQN/weight/20230212_181516/DQN_ep1250"
     # weight_path = "agent/SoftDQN/weight/20230212_181516/DQN_ep3350"
     # weight_path = "agent/SoftDQN/weight/20230213_022608/DQN_ep4280"
     # weight_path = "agent/SoftDQN/weight/20230213_022608/DQN_ep2250"
     # weight_path = "agent/SoftDQN/weight/20230213_010847/DQN_ep4230"
-    result_dir = "agent/SoftDQN/result/20230212_181516"
+    weight_path = "agent/SoftDQN/weight/20230215_225054/DQN_ep4020"
+    # result_dir = "agent/SoftDQN/result/20230212_181516"
     print(weight_path)
     eval_ta(weight_path)
 
@@ -150,8 +151,10 @@ if __name__ == "__main__":
     # weight_dir = "agent/SoftDQN/weight/20230213_174023"
     # weight_dir = "agent/SoftDQN/weight/20230213_174028"
     # weight_dir = "agent/SoftDQN/weight/20230214_103834"
-    # for weight_name in os.listdir(weight_dir):
-    #     weight_path = os.path.join(weight_dir, weight_name)
-    #     print(weight_path)
-    #     eval_ta(weight_path)
-    #     print()
+    # weight_dir = "agent/SoftDQN/weight/20230215_225054"
+    weight_dir = "agent/SoftDQN/weight/20230215_211557"
+    for weight_name in os.listdir(weight_dir):
+        weight_path = os.path.join(weight_dir, weight_name)
+        print(weight_path)
+        eval_ta(weight_path)
+        print()
